@@ -1,6 +1,5 @@
 # Interpolation for sorted grid (ascending)
 import numpy as np
-from numba import jit
 
 #@jit(nopython=True)    
 def interp3D_sorted_single_calc(point,xarr,yarr,zarr,grid):

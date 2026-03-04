@@ -1,6 +1,5 @@
 import numpy as np
 from colossus.cosmology import cosmology
-from numba import jit
 
 
 ################################### 
