@@ -50,7 +50,7 @@ def QuickSearch(tarr,tval):
     return t_below_index
 
 
-class reg_grid_interp:
+class sort_grid_interp:
     
     def __init__(self,grid,xarr,yarr = None,zarr = None, zero_out_of_bounds = False ):
         self.grid = grid
@@ -213,9 +213,8 @@ class reg_grid_interp:
         return interpolated_values
 
             
+   
         
-    
-    
 
     
 

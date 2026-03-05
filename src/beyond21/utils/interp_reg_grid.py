@@ -80,7 +80,40 @@ class reg_grid_interp:
 
         return g00 + tx*(g10 - g00) + ty*(g01 - g00) + tx*ty*(g11 - g10 - g01 + g00)
 
-        
+    def interp1D(self, x_points):
+        x_points = np.atleast_1d(x_points)
+
+        xmin = self.xmin
+        xmax = self.xmax
+        dx = self.dx
+        inv_dx = self.inv_dx
+        grid = self.grid
+
+        # Mask for points inside grid
+        in_bounds = (x_points >= xmin) & (x_points <= xmax)
+
+        if not self.zero_out_of_bounds and not np.all(in_bounds):
+            raise ValueError("Extrapolate = False and some points are out of bounds")
+
+        interpolated_values = np.zeros_like(x_points, dtype=float)
+
+        if np.any(in_bounds):
+            x_valid = x_points[in_bounds]
+
+            ix = ((x_valid - xmin) * inv_dx).astype(int)  # Index ix such that xarr[ix] <= x < xarr[ix+1]
+            ix = np.clip(ix, 0, len(grid) - 2) # Ensure ix is within valid range for grid indexing
+
+            tx = (x_valid - (xmin + ix * dx)) * inv_dx # (x-xarr[ix])/dx
+
+            g0 = grid[ix]
+            g1 = grid[ix + 1]
+
+            interpolated_values[in_bounds] = g0 + tx * (g1 - g0)
+
+        return interpolated_values
+
+
+            
 
 
 

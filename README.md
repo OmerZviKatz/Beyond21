@@ -6,30 +6,33 @@
 It provides a flexible and modular pipeline to compute the coupled
 evolution of early stellar populations, radiation backgrounds, and the
 intergalactic medium, enabling predictions for multiple observables
-within a single framework. 
+within a single framework. A full run takes ~0.1 s using a single CPU
+core on a laptop, enabling broad, high resolution, parameter exploration.
 
 Key outputs include:
--   Global **21-cm signal**
--   **UV luminosity functions (UVLFs)**
--   **Ionization history**
--   Contributions to the **cosmic X-ray background (CXB)**
+-   Global 21-cm signal
+-   UV luminosity functions (UVLFs)
+-   Ionization history
+-   Contributions to the cosmic X-ray background (CXB)
 
-Beyond21 was designed with modularity in mind, allowing straightforward modification of astrophysical prescriptions and the incorporation of new physics.
+We encourage users to take advantage of the modular structure and short running time of Beyond21 to test new astrophysical models and explore physics within and beyond the Standard Model.
+
+
 ------------------------------------------------------------------------
 
 # Installation
 
-## Requirements
+### Requirements
 
 Beyond21 requires **Python ≥ 3.9**.
 
 ------------------------------------------------------------------------
 
-## Quick install (recommended)
+### Quick install
 
 ``` bash
-git clone https://github.com/USERNAME/beyond21.git
-cd beyond21
+git clone git@github.com:OmerZviKatz/Beyond21.git
+cd Beyond21
 pip install ".[all]"
 ```
 
@@ -38,69 +41,23 @@ support.
 
 ------------------------------------------------------------------------
 
-## Creating an environment (optional)
+### Using a Conda environment (optional)
 
-If you work with Conda you can create a dedicated environment using 
-the provided beyond21.yml:
+If you use Conda, you can create a dedicated environment using the provided beyond21.yml file:
 
 ``` bash
 conda env create -f beyond21.yml
 conda activate beyond21
 ```
-
-------------------------------------------------------------------------
-
-## Install the package
-
-Install Beyond21:
+After cloning the repository, install Beyond21 inside the environment:
 
 ``` bash
 pip install .
 ```
 
-------------------------------------------------------------------------
+### For developers
 
-## Optional dependencies
-
-Beyond21 provides optional dependency groups for plotting and
-interactive notebooks.
-
-### Plotting
-
-``` bash
-pip install ".[plot]"
-```
-
-Installs:
-
--   `matplotlib`
-
-------------------------------------------------------------------------
-
-### Interactive notebooks
-
-``` bash
-pip install ".[interactive]"
-```
-
-Installs:
-
--   `jupyterlab`
--   `ipywidgets`
-
-------------------------------------------------------------------------
-
-### Full installation
-
-``` bash
-pip install ".[all]"
-```
-
-Installs all optional dependencies.
-
-------------------------------------------------------------------------
-
-## For developers
+If you plan to modify the code, install Beyond21 in editable mode:
 
 ``` bash
 pip install -e ".[all]"
@@ -109,20 +66,12 @@ pip install -e ".[all]"
 Editable mode ensures that changes to the source code are immediately
 reflected without reinstalling the package.
 
-## Verify installation
-
-You can verify that the installation works by importing the package:
-
-``` python
-import beyond21
-print(beyond21.__version__)
-```
-
 ------------------------------------------------------------------------
 
-# License
+# Tutorial
 
-This project is released under the **MIT License**.
+To get started with Beyond21, we recommend exploring the notebooks in the
+`tutorial` directory.
 
 ------------------------------------------------------------------------
 

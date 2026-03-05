@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import root
-import beyond21.constants as unit
+import beyond21.constants as consts
 import beyond21.interpolations as pre
 
 global Ts_prev
@@ -23,7 +23,7 @@ def C10_calc(TK, nHI, np, ne):
 def tauGP_func(H, nHI):
     # Hubble at z - s^-1
     gamma = 50 * 1e6  # HWHM of Lyalpha resonance in Hz
-    return 3 * nHI * unit.Lambda_Lya ** 3 * gamma / 2 / H  # dimensionless
+    return 3 * nHI * consts.Lambda_Lya ** 3 * gamma / 2 / H  # dimensionless
 
 def Ts_inv(Ts, TK, TCMB, xHI, xc, tauGP, J, z):
     # Parameters: Ts- spin temperature in K (symoblic parameter), TK- gas temperature in kelvin, xe- ionized fraction, J - Lymann alpha flux in cm^−2s^−1 Hz^−1, z-redshift
@@ -37,7 +37,7 @@ def Ts_inv(Ts, TK, TCMB, xHI, xc, tauGP, J, z):
 def Ts_calc(H, TK, xHI, J, z, nHI, nHII, ne, TCMB, Ts_prev=None):
     # Solve for spin temperature
     C10 = C10_calc(TK, nHI, nHII, ne)
-    xc = C10 * unit.Tstar / (unit.A10 * TCMB)  # Collision coupling coefficient - dimensionless
+    xc = C10 * consts.Tstar / (consts.A10 * TCMB)  # Collision coupling coefficient - dimensionless
     tauGP = tauGP_func(H,nHI)
     
     # Scalar case
@@ -58,18 +58,17 @@ def Ts_calc(H, TK, xHI, J, z, nHI, nHII, ne, TCMB, Ts_prev=None):
         
     return Tsarr
 
-
-def T21calc(Cosmo,z, Ts, xHI, nH, TCMB):
+def T21calc(cosmo,z, Ts, xHI, nH, TCMB):
     # Parameters: redshift, spin temperature in K, ionized fraction
     # Return: T21 in K 
-    TCMB = Cosmo.TCMB(z + 1) / unit.kB  # CMB temperature - Kelvin
+    TCMB = cosmo.TCMB(z + 1) / consts.kB  # CMB temperature - Kelvin
 
     # nu0=1420*1e6 #Frequency of 21cm photon in Hz
-    # tau=3*unit.c**3*unit.A10*xHI*nH/32/np.pi/nu0**3/Cosmo.hubble(z)*unit.Tstar/Ts #Correct
+    # tau=3*consts.c**3*consts.A10*xHI*nH/32/np.pi/nu0**3/cosmo.hubble(z)*consts.Tstar/Ts #Correct
     # delta_Tb=(Ts-TCMB)/(1+z)*(1-np.exp(-tau))
     # return delta_Tb
 
-    return (27 * xHI * Cosmo.Omega_b * Cosmo.cosmo.h ** 2 / 0.023 * np.sqrt(0.15 / Cosmo.Omega_m / Cosmo.cosmo.h ** 2 * (1 + z) / 10) * (1 - Cosmo.TCMB(1 + z) / unit.kB / Ts) / 1000)  # /1000 for mK
+    return (27 * xHI * cosmo.Omega_b * cosmo.cosmo.h ** 2 / 0.023 * np.sqrt(0.15 / cosmo.Omega_m / cosmo.cosmo.h ** 2 * (1 + z) / 10) * (1 - cosmo.TCMB(1 + z) / consts.kB / Ts) / 1000)  # /1000 for mK
 
 
 #############################################
@@ -84,8 +83,8 @@ def alpha_A(Tbaryon):
     For T<3 [Kelvin] fir is inavlid, instead take alpha(3K)*sqrt(3K/T) as an approximation. See Eq.10 in the 2nd paper for explanation.
     '''
     logT = np.log(Tbaryon);
-    T3 = 3*unit.kB
-    Tbaryon_kelvin = Tbaryon/unit.kB
+    T3 = 3*consts.kB
+    Tbaryon_kelvin = Tbaryon/consts.kB
     
     if Tbaryon>=T3:
         alpha = pow(np.exp(1), -28.6130338 - 0.72411256*logT - 2.02604473e-2*pow(logT, 2)
@@ -109,16 +108,16 @@ def alpha_B(Tbaryon):
     # Fudged result of "Total and effective radiative recombination coefficients" by Pequignot et al. (see 1011.3758).
 
     fudge_fac = 1.126
-    t = 1.0e-4*Tbaryon/unit.kB
+    t = 1.0e-4*Tbaryon/consts.kB
     return ( fudge_fac * 1.0e-13 * 4.309 * t ** (-0.6166) / (1 + 0.6703 * t ** 0.5300) )
 
 def beta_ion(T_rad):
     # Input: T_rad [eV] : Temperature of background radiation (CMB for SM)
     # Output: beta_ion [1/s] : Case-B photoionization coefficient in s^-1
 
-    red_mass = unit.m_p*unit.m_e/(unit.m_p + unit.m_e)
-    ge = (2*np.pi*red_mass*T_rad)**(3/2)/unit.Planck**3/unit.c**3 #Eq 3 times nH
-    return ge / 4 * np.exp(-unit.E_Ryd/4/T_rad)*alpha_B(T_rad)
+    red_mass = consts.m_p*consts.m_e/(consts.m_p + consts.m_e)
+    ge = (2*np.pi*red_mass*T_rad)**(3/2)/consts.Planck**3/consts.c**3 #Eq 3 times nH
+    return ge / 4 * np.exp(-consts.E_Ryd/4/T_rad)*alpha_B(T_rad)
 
 
 ###############################################################
@@ -129,12 +128,12 @@ def beta_ion(T_rad):
 
 def dxHII_dloga_3level_caseB_recombination(rs, xHII_IGM, Tbaryon, n_H, Hubble, TCMB):
     ''' return: dxHII/dlog(a) - the change in the ionized hydrogen xHII = nHII/nH according to the TLA approximation 1011.3758 '''
-    RLya = 8 * np.pi * Hubble / (3 * n_H * (1 - xHII_IGM) * unit.Lambda_Lya**3) # [1/s] Lyman alpha rate
+    RLya = 8 * np.pi * Hubble / (3 * n_H * (1 - xHII_IGM) * consts.Lambda_Lya**3) # [1/s] Lyman alpha rate
     alpha_recomb = alpha_B(Tbaryon) # [cm^3/s] Case B recombination coefficient
     Lambda2s1s = 8.22 #[1/s] Rate of photon decay from 2s to 1s in Hydrogen
     C=(3/4*RLya + Lambda2s1s/4)/(beta_ion(TCMB) + 3/4*RLya + Lambda2s1s/4) # Peebles constant
 
-    dxHII_dloga = -(C / Hubble) * (n_H * alpha_recomb * xHII_IGM ** 2 - 4 * (1 - xHII_IGM) * beta_ion(TCMB) * np.exp(-unit.E_Lya / TCMB))  # Eq C13
+    dxHII_dloga = -(C / Hubble) * (n_H * alpha_recomb * xHII_IGM ** 2 - 4 * (1 - xHII_IGM) * beta_ion(TCMB) * np.exp(-consts.E_Lya / TCMB))  # Eq C13
     if xHII_IGM >= 0.99 and dxHII_dloga>0: 
         #Before recombination starts dxHII_dloga>0 causing numerical issues. Physically xHII<1 so we just set to dxHII_dloga = 0 in this case.
         return 0
@@ -161,8 +160,8 @@ def dTb_dloga_Compton(rs, abundances, Tbaryon, Hubble, TCMB):
     Outputs:
         dTb_dloga [eV]: Rate of change in Tbaryon due to Compton scattering with CMB photons 
     '''
-    H = Hubble / unit.Sec
-    return (abundances['e'] / (1 + abundances['He'] + abundances['e'])) * 8 * unit.Thomson_xsec* unit.a_r*pow(TCMB,4) / (3 * unit.m_e) * (TCMB - Tbaryon) / H  #Fix: should replace HII with e in ionization. Also we are using ionization quantities only in neutral region. Should it not be the average including bubbles?
+    H = Hubble / consts.Sec
+    return (abundances['e'] / (1 + abundances['He'] + abundances['e'])) * 8 * consts.Thomson_xsec* consts.a_r*pow(TCMB,4) / (3 * consts.m_e) * (TCMB - Tbaryon) / H  #Fix: should replace HII with e in ionization. Also we are using ionization quantities only in neutral region. Should it not be the average including bubbles?
 
 def dTb_dloga_Xrays(rs, abundances, Xheat, Hubble, n_H): 
     '''
@@ -200,7 +199,7 @@ def dTb_dloga_Lya(rs, abundances, Q_HII, Tbaryon, Jalphastar_interps, JalphaX_in
     Jalphastar = Jalphastar_interps[0](rs-1)
     Jalphastar_continuum = Jalphastar_interps[1](rs-1)
     Jalphastar_injected = Jalphastar_interps[2](rs-1)
-    Tbaryon_kelvin = Tbaryon/unit.kB
+    Tbaryon_kelvin = Tbaryon/consts.kB
     
     # Global averaged abundances
     xHI_avg = 1 - (Q_HII + (1-Q_HII) * abundances['HII'])
@@ -211,14 +210,14 @@ def dTb_dloga_Lya(rs, abundances, Q_HII, Tbaryon, Jalphastar_interps, JalphaX_in
     
     Jalpha = Jalphastar + JalphaX_interp(Xheat,abundances['HII'], rs-1) #Add Lyalpha intensity from X-rays
     if Ts_prev[0]!=0 and rs<49:
-        Ts = Ts_calc(H,Tbaryon_kelvin, xHI_avg, Jalpha, rs-1, nHI, nHII, ne, TCMB/unit.kB, Ts_prev = Ts_prev[0]) #Tspin kelvin
+        Ts = Ts_calc(H,Tbaryon_kelvin, xHI_avg, Jalpha, rs-1, nHI, nHII, ne, TCMB/consts.kB, Ts_prev = Ts_prev[0]) #Tspin kelvin
     else:
-        Ts = Ts_calc(H,Tbaryon_kelvin, xHI_avg, Jalpha, rs-1, nHI, nHII, ne, TCMB/unit.kB) #Tspin kelvin
+        Ts = Ts_calc(H,Tbaryon_kelvin, xHI_avg, Jalpha, rs-1, nHI, nHII, ne, TCMB/consts.kB) #Tspin kelvin
     Ts_prev[0] = Ts
 
     
     tauGP = tauGP_func(H,nHI)
-    J0 = n_H * unit.c / 4 / np.pi / unit.Freq_Lya
+    J0 = n_H * consts.c / 4 / np.pi / consts.Freq_Lya
     
     Continuum_Heat_tab, Injected_Heat_tab = pre.LyalphaHeat_Interps(Tbaryon_kelvin,Ts,tauGP)
     Continuum_Heat = Continuum_Heat_tab*Jalphastar_continuum/J0*Tbaryon
@@ -226,8 +225,8 @@ def dTb_dloga_Lya(rs, abundances, Q_HII, Tbaryon, Jalphastar_interps, JalphaX_in
     return Continuum_Heat+Injected_Heat
 
 def dTb_dloga_CMB(rs, abundances, Tbaryon, TCMB, Hubble):     
-    P_CMB = 3/4*TCMB/unit.E_21*unit.A10 #s^-1
-    return 2/3/Hubble*P_CMB*unit.E_21**2/unit.m_p*(1+2*Tbaryon/unit.E_21)*(1-abundances['HII'])/(1+abundances['HII'])/(1+abundances['He']) #Fix: Shouldn't be ionization['e']?
+    P_CMB = 3/4*TCMB/consts.E_21*consts.A10 #s^-1
+    return 2/3/Hubble*P_CMB*consts.E_21**2/consts.m_p*(1+2*Tbaryon/consts.E_21)*(1-abundances['HII'])/(1+abundances['HII'])/(1+abundances['He']) #Fix: Shouldn't be ionization['e']?
 
     
 
@@ -236,7 +235,7 @@ def dTb_dloga_CMB(rs, abundances, Tbaryon, TCMB, Hubble):
 ###########################################################################
 
 
-def ODEs_SM(log_a,y,Cosmo, Jalphastar_interps, JalphaX_interp, interp_SFRD,xi_interp, heatrate_grid_xe_z,ion_grid_xe_z,Lya_Heat,CMB_Heat):
+def ODEs_SM(log_a,y,cosmo, Jalphastar_interps, JalphaX_interp, interp_SFRD,xi_interp, heatrate_grid_xe_z,ion_grid_xe_z,Lya_Heat,CMB_Heat):
     '''
     Parameters:
         log_a is the natural log of the scale factor. This is the parameter according to which we differentiate.
@@ -245,24 +244,24 @@ def ODEs_SM(log_a,y,Cosmo, Jalphastar_interps, JalphaX_interp, interp_SFRD,xi_in
 
                             # Update fluid and cosmological properties to current step
                             #---------------------------------------------------------
-    rs = Cosmo.rs_from_log_a(log_a)            # Redshift (1+z)
-    TCMB = Cosmo.TCMB(rs)                 # CMB temperature [eV]
+    rs = cosmo.rs_from_log_a(log_a)            # Redshift (1+z)
+    TCMB = cosmo.TCMB(rs)                 # CMB temperature [eV]
     DeltaT_CMB_kinetic, xHII_IGM = y     # CMB - gas kinetic temperature [eV], fraction of ionized hydrogen in IGM (nHII/nH) - outside of fully ionized bubbles
     Tbaryon = TCMB - DeltaT_CMB_kinetic  # Kinetic temperature of gas [eV]
     xHII_IGM = max(xHII_IGM,1e-5)        # Cut xHII below 1e-5 for numerical stability
     
-    Hubble = Cosmo.hubble(rs)      # Hubble parameter at rs [1/s]
-    n_H = Cosmo.nH * rs **3        # Mean hydrogen density [1/cm^3]
-    n_b = Cosmo.nB * rs **3        # Mean baryon (H+He) density [1/cm^3]
+    Hubble = cosmo.hubble(rs)      # Hubble parameter at rs [1/s]
+    n_H = cosmo.nH * rs **3        # Mean hydrogen density [1/cm^3]
+    n_b = cosmo.nB * rs **3        # Mean baryon (H+He) density [1/cm^3]
     Q_HII = xi_interp(rs - 1) if xi_interp else 1e-10 # Volume filling factor of fully ionized bubbles
     
     abundances = {
         #Abundances of different species x = nx/nH. 
         #At z<50 IGM ionization (outside of ionized bubbles) is by X-rays, We assume HeI and HI ionize equally. 
-        'e' : xHII_IGM * (1+ Cosmo.nHe/Cosmo.nH) if rs <= 50 else xHII_IGM ,  
+        'e' : xHII_IGM * (1+ cosmo.nHe/cosmo.nH) if rs <= 50 else xHII_IGM ,  
         'HI' : (1 - xHII_IGM),
         'HII' : xHII_IGM,
-        'He' : Cosmo.nHe / Cosmo.nH
+        'He' : cosmo.nHe / cosmo.nH
     }
 
 

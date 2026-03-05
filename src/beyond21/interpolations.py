@@ -10,14 +10,7 @@ from pathlib import Path
 import numpy as np
 from scipy.interpolate import interp1d
 from importlib.resources import files
-from beyond21.utils.interp_sorted_grid import reg_grid_interp
-
-
-#######################################
-# PopII and PopIII Lyman-band spectra #  
-#######################################
-
-spectral_distribution = np.transpose(np.loadtxt(files("beyond21").joinpath("data", "spectral_distribution"), skiprows=10)) 
+from beyond21.utils.interp_sorted_grid import sort_grid_interp
 
 ########################################################
 # Energy deposition fractions in X-ray photoionization #  
@@ -58,8 +51,8 @@ Tk_arr = np.load(files("beyond21").joinpath("data", "lya_coupling_grids/Tk"))
 tauGP_arr = np.load(files("beyond21").joinpath("data", "lya_coupling_grids/tauGP"))
 Stilde_arr = np.load(files("beyond21").joinpath("data", "lya_coupling_grids/S_tilde")) #Stilde(TK,Ts,taugGP)
 TC_arr = np.load(files("beyond21").joinpath("data", "lya_coupling_grids/TC"))
-TC_interp = reg_grid_interp(TC_arr,np.log10(Tk_arr) ,np.log10(Ts_arr),np.log10(tauGP_arr)).interp3D_sorted_single
-Stilde_interp = reg_grid_interp(Stilde_arr,np.log10(Tk_arr) ,np.log10(Ts_arr),np.log10(tauGP_arr)).interp3D_sorted_single
+TC_interp = sort_grid_interp(TC_arr,np.log10(Tk_arr) ,np.log10(Ts_arr),np.log10(tauGP_arr)).interp3D_sorted_single
+Stilde_interp = sort_grid_interp(Stilde_arr,np.log10(Tk_arr) ,np.log10(Ts_arr),np.log10(tauGP_arr)).interp3D_sorted_single
 
 # 0.01<Tk<300, 0.01<Ts<300, 1e4<tauGP<1e7 (required for BSM scenarios where TK can drop below 1K)
 Ts_arr = np.load(files("beyond21").joinpath("data", "lya_coupling_grids/Ts_2"))
@@ -67,8 +60,8 @@ Tk_arr = np.load(files("beyond21").joinpath("data", "lya_coupling_grids/Tk_2"))
 tauGP_arr = np.load(files("beyond21").joinpath("data", "lya_coupling_grids/tauGP_2"))
 Stilde_arr = np.load(files("beyond21").joinpath("data", "lya_coupling_grids/S_tilde_2")) #Stilde(TK,Ts,taugGP)
 TC_arr = np.load(files("beyond21").joinpath("data", "lya_coupling_grids/TC_2"))
-TC_interp_2 = reg_grid_interp(TC_arr,np.log10(Tk_arr) ,np.log10(Ts_arr),np.log10(tauGP_arr)).interp3D_sorted_single
-Stilde_interp_2 = reg_grid_interp(Stilde_arr,np.log10(Tk_arr) ,np.log10(Ts_arr),np.log10(tauGP_arr)).interp3D_sorted_single
+TC_interp_2 = sort_grid_interp(TC_arr,np.log10(Tk_arr) ,np.log10(Ts_arr),np.log10(tauGP_arr)).interp3D_sorted_single
+Stilde_interp_2 = sort_grid_interp(Stilde_arr,np.log10(Tk_arr) ,np.log10(Ts_arr),np.log10(tauGP_arr)).interp3D_sorted_single
 
 def Salpha_Tc_Interp(tauGP,TK,Ts):
     #if tauGP>=1e5 and tauGP<=1e7 and TK>=2 and Ts>=2:
@@ -102,8 +95,8 @@ Tbaryon_heffs = np.logspace(np.log10(0.1), np.log10(100.0), num=175)
 Ts_heffs = np.logspace(np.log10(0.1), np.log10(100.0), num=175)
 tauGP_heffs = np.logspace(4.0, 7.0)
 
-LyalphaHeat_Injected_heffs = reg_grid_interp(heffs[2,:,:,:],Tbaryon_heffs,Ts_heffs,tauGP_heffs).interp3D_sorted_single
-LyalphaHeat_Continuum_heffs = reg_grid_interp(heffs[3,:,:,:],Tbaryon_heffs,Ts_heffs,tauGP_heffs).interp3D_sorted_single
+LyalphaHeat_Injected_heffs = sort_grid_interp(heffs[2,:,:,:],Tbaryon_heffs,Ts_heffs,tauGP_heffs).interp3D_sorted_single
+LyalphaHeat_Continuum_heffs = sort_grid_interp(heffs[3,:,:,:],Tbaryon_heffs,Ts_heffs,tauGP_heffs).interp3D_sorted_single
 
 #Pre-computed grid - valid for Tbaryon,Ts in [1e-3,10]K and tauGP in [1e4,1e7]
 Ts_arr = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids/Ts_Heat"))
@@ -112,8 +105,8 @@ tauGP_arr = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHe
 LyalphaHeat_Injected_raw = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids/HeatI")) #Stilde(Tbaryon,Ts,taugGP)
 LyalphaHeat_Continuum_raw = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids/HeatC"))
 
-LyalphaHeat_Injected_low = reg_grid_interp(LyalphaHeat_Injected_raw,Tbaryon_arr,Ts_arr,tauGP_arr).interp3D_sorted_single
-LyalphaHeat_Continuum_low = reg_grid_interp(LyalphaHeat_Continuum_raw,Tbaryon_arr,Ts_arr,tauGP_arr).interp3D_sorted_single
+LyalphaHeat_Injected_low = sort_grid_interp(LyalphaHeat_Injected_raw,Tbaryon_arr,Ts_arr,tauGP_arr).interp3D_sorted_single
+LyalphaHeat_Continuum_low = sort_grid_interp(LyalphaHeat_Continuum_raw,Tbaryon_arr,Ts_arr,tauGP_arr).interp3D_sorted_single
 
 #Pre-computed grid - valid for Ts in [100,300], Tk in [1,100], and tauGP in [1e4,1e7]
 Ts_arr = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids_highTK/Ts_Heat"))
@@ -122,8 +115,8 @@ tauGP_arr = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHe
 LyalphaHeat_Injected_raw = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids_highTK/HeatI")) 
 LyalphaHeat_Continuum_raw = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids_highTK/HeatC"))
 
-LyalphaHeat_Injected_high = reg_grid_interp(LyalphaHeat_Injected_raw,Tbaryon_arr,Ts_arr,tauGP_arr).interp3D_sorted_single
-LyalphaHeat_Continuum_high = reg_grid_interp(LyalphaHeat_Continuum_raw,Tbaryon_arr,Ts_arr,tauGP_arr).interp3D_sorted_single
+LyalphaHeat_Injected_high = sort_grid_interp(LyalphaHeat_Injected_raw,Tbaryon_arr,Ts_arr,tauGP_arr).interp3D_sorted_single
+LyalphaHeat_Continuum_high = sort_grid_interp(LyalphaHeat_Continuum_raw,Tbaryon_arr,Ts_arr,tauGP_arr).interp3D_sorted_single
 
 def LyalphaHeat_Interps(Tk,Ts,tauGP):
     if Tk>100 or tauGP<1e4:

@@ -1,6 +1,6 @@
 import numpy as np
 from colossus.cosmology import cosmology
-import beyond21.constants as unit
+import beyond21.constants as consts
 from colossus.lss import mass_function
 
 class Cosmology:
@@ -71,7 +71,7 @@ class Cosmology:
 
         # Hubble
         self.h = self.cosmo.h                           #Hubble
-        self.H0 = self.cosmo.H0*unit.Meter*1000/unit.Mpc #[1/s]
+        self.H0 = self.cosmo.H0*consts.Meter*1000/consts.Mpc #[1/s]
 
         # Abundances
         self.Omega_lambda = self.cosmo.Ode0             #Dark energy
@@ -81,23 +81,23 @@ class Cosmology:
         self.Omega_DM     = self.Omega_m - self.Omega_b      #DM
 
         # Mean energy densities today [eV/cm^3] 
-        self.rho_crit = float(self.cosmo.rho_c(0)*unit.M_s/unit.kpc**3*unit.Centimeter**3*self.cosmo.h**2)
+        self.rho_crit = float(self.cosmo.rho_c(0)*consts.M_s/consts.kpc**3*consts.Centimeter**3*self.cosmo.h**2)
         self.rho_baryon = self.rho_crit * self.Omega_b
         self.rho_DM = self.rho_crit * self.Omega_DM
 
         # Mean number densities today [1/cm^3]
-        self.nHe = self.rho_baryon * self.Y_He / unit.m_He 
-        self.nH = self.rho_baryon * (1-self.Y_He) / unit.m_p 
+        self.nHe = self.rho_baryon * self.Y_He / consts.m_He 
+        self.nH = self.rho_baryon * (1-self.Y_He) / consts.m_p 
         self.nB = self.nH + self.nHe
 
         self.mu_b = self.rho_baryon/self.nB # Mean baryon mass 
         return 
 
     def TCMB(self,rs):
-        return self.Tcmb0 * unit.kB * rs
+        return self.Tcmb0 * consts.kB * rs
         
     def hubble(self,rs):
-        #Hubble parameter at rs = 1+z in units of [1/s]
+        #Hubble parameter at rs = 1+z in constss of [1/s]
         return self.H0*np.sqrt(self.Omega_r*rs**4 + self.Omega_m*rs**3 + self.Omega_lambda)
 
     def dzdt(self,z):
@@ -119,12 +119,12 @@ class Cosmology:
         Return: 
             dndlnm in (Mpc/h)^-3 converted to cm^-3
         '''
-        Mpc_to_cm = unit.Mpc/unit.Centimeter
+        Mpc_to_cm = consts.Mpc/consts.Centimeter
 
         if PS:
             hmf_kwargs = {"mdef": "fof", "model": "press74"}
-            return mass_function.massFunction(Mh / (unit.M_s / self.h), z, q_in="M", q_out="dndlnM", **hmf_kwargs) * (Mpc_to_cm / self.h) ** -3  # Notice that the input mass for hmf is changed to M_s/h as required in COLOSSUS.
+            return mass_function.massFunction(Mh / (consts.M_s / self.h), z, q_in="M", q_out="dndlnM", **hmf_kwargs) * (Mpc_to_cm / self.h) ** -3  # Notice that the input mass for hmf is changed to M_s/h as required in COLOSSUS.
 
-        return mass_function.massFunction(Mh / (unit.M_s / self.h), z, q_in="M", q_out="dndlnM", **self.hmf_kwargs) * (Mpc_to_cm / self.h) ** -3  # Notice that the input mass for hmf is changed to M_s/h as required in COLOSSUS.
+        return mass_function.massFunction(Mh / (consts.M_s / self.h), z, q_in="M", q_out="dndlnM", **self.hmf_kwargs) * (Mpc_to_cm / self.h) ** -3  # Notice that the input mass for hmf is changed to M_s/h as required in COLOSSUS.
 
 

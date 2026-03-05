@@ -1,4 +1,4 @@
-import beyond21.constants as unit
+import beyond21.constants as consts
 import numpy as np
 from scipy import integrate
 from beyond21.utils.interp_reg_grid import reg_grid_interp
@@ -50,8 +50,8 @@ class XrayHeatingReion:
 
     Eth = {'HI': 13.6, 'HeI': 24.59, 'HeII': 54.42}  # Threshold ionization energy [eV] 
     
-    def __init__(self, CosmoObj, Xray_params, SFRD_interp, Q_ion_interp = None, populations = False, zstar = 50, zmin = 1, xe_max = 0.9999, xe_min = 1e-5, zlen = 100, xe_len = 25, include_HeII = False):
-        self.Cosmo = CosmoObj
+    def __init__(self, cosmo, Xray_params, SFRD_interp, Q_ion_interp = None, populations = False, zstar = 50, zmin = 1, xe_max = 0.9999, xe_min = 1e-5, zlen = 100, xe_len = 25, include_HeII = False):
+        self.cosmo = cosmo
         self.include_HeII = include_HeII #Flag that decides whether to include HeII in heating and ionization or not
 
         #X-ray params
@@ -92,8 +92,8 @@ class XrayHeatingReion:
         # Compute the specific X-ray number emissivity per comoving volume [1 / eV / cm^3 / s]
         # at a given redshift,z, and photon energy [eV](Eq.25).
         
-        erg_to_solar_mass=unit.erg/unit.M_s
-        sec_to_year=unit.Sec/unit.Year
+        erg_to_solar_mass=consts.erg/consts.M_s
+        sec_to_year=consts.Sec/consts.Year
         
         # Normalization set by input L[<2keV]/SFR -> compute L/V = L[<2keV]/SFR*SFRD
         if self.populations == 'PopII+PopIII':
@@ -134,57 +134,6 @@ class XrayHeatingReion:
         
         return dLdV*fE*NormFact # [1/eV/s/cm^3]
 
-
-    # # Exact computation
-    # def optical_depth(self, z, zp_arr, E_arr):
-    #     ''' 
-    #     Compute the optical depth of a photon emitted at z' and observed at z with energy E, tau(E,z,z') (Eq.35):
-
-    #     Parameters
-    #     ----------
-    #         z : float 
-    #             Final propagation redshift 
-    #         zp_arr : 1D array 
-    #             Initial propagation redshift (zp>z)
-    #         E_arr : 1D array
-    #             Energy at z [eV] 
-    #     Returns
-    #     -------
-    #         tau_2D : 2D array 
-    #             Array of optical depths with shape (len(zp_arr)), len(E_arr))
-    #     '''
-
-    #     # tau is an integral over z'' between [z',z]
-    #     # Create 2D matrix with rows running from zp to z for all zp's in zp_arr
-    #     zp_col = zp_arr[:,None] # Column vector
-    #     zpp_len = int(max(2, np.max(zp_arr - z)))
-    #     zpp_matrix = np.linspace(zp_col, z, zpp_len, axis=1)[:,:,0] # (len(zp_arr), zpp_len)
-    #     rs_pp_matrix = 1 + zpp_matrix 
-
-    #     # Compute prefactors and ionized fraction outside integral to improve runtime
-    #     preFact = -unit.c*rs_pp_matrix**2/self.Cosmo.hubble(rs_pp_matrix)
-
-    #     Q_ion_pp = self.Q_ion_interp(zpp_matrix) 
-        
-    #     # Energy at z_pp 
-    #     E_pp = E_arr * rs_pp_matrix[:,:,None] /(1+z) # (len(zp_arr), zpp_len, len(E_arr))
-       
-    #     # Broadcast energy dimension
-    #     preFact = np.broadcast_to(preFact[:, :, None], E_pp.shape)
-    #     Q_ion_pp = np.broadcast_to(Q_ion_pp[:, :, None], E_pp.shape)
-    #     zpp = np.broadcast_to(zpp_matrix[:,:,None], E_pp.shape)
-
-    #     # Solve integral
-    #     integrand = np.zeros_like(E_pp,dtype = float)
-    #     integrand += preFact * self.photoions_xsec_Verner96(E_pp, 'HI') * self.Cosmo.nH * (1-Q_ion_pp)
-    #     integrand += preFact * self.photoions_xsec_Verner96(E_pp, 'HeI') * self.Cosmo.nHe * (1-Q_ion_pp)                           
-        
-
-    #     tau_2D = np.trapz(integrand, zpp,axis = 1)
-    #     #print(tau_2D)
-    #     return(tau_2D)
-
-
     # Interpolation - Fast
     def optical_depth(self, z, zp_arr, E_arr):
         '''
@@ -211,13 +160,16 @@ class XrayHeatingReion:
 
         # tau is an integral over z'' between [z',z]
         # Create and array zpp running from z to max(zp)
+        E_arr = np.atleast_1d(E_arr)
+        zp_arr = np.atleast_1d(zp_arr)
+        
         zmax = np.max(zp_arr)
         Nzpp = int(10 * zmax)
         zpp = np.linspace(z, zmax, Nzpp)              # (Nzpp,)
         rs  = 1.0 + zpp                               # (Nzpp,)
 
         # Compute prefactors and ionized fraction outside integral to improve runtime
-        preFact = unit.c * rs**2 / self.Cosmo.hubble(rs)    # (Nzpp,)
+        preFact = consts.c * rs**2 / self.cosmo.hubble(rs)    # (Nzpp,)
         one_minus_Q = 1.0 - self.Q_ion_interp(zpp)           # (Nzpp,)
 
         # Energy at z_pp
@@ -228,7 +180,7 @@ class XrayHeatingReion:
         sig_HeI = self.photoions_xsec_Verner96(E_pp, "HeI")
 
         # Write integrand for tau(E_arr,z,max(zp)) and solve the cumulative integral
-        absorption = self.Cosmo.nH * sig_HI + self.Cosmo.nHe * sig_HeI           # (Nzpp, NE)
+        absorption = self.cosmo.nH * sig_HI + self.cosmo.nHe * sig_HeI           # (Nzpp, NE)
         integrand  = (preFact * one_minus_Q)[:, None] * absorption               # (Nzpp, NE)
         cum_tau = cumulative_trapezoid(integrand, zpp, axis=0, initial=0.0)      # (Nzpp, NE)
 
@@ -241,9 +193,6 @@ class XrayHeatingReion:
         return tau_2D
 
 
-
-
-    
     def JX(self, z, E_arr):
         # Compute the X-ray specific number intensity J_X(E, z) [1/eV/cm^2/s/sr] (Eq.26) 
         # at redshift z and energies E_arr [eV].
@@ -260,11 +209,11 @@ class XrayHeatingReion:
         Eprime = E * (1.0 + Z) / (1.0 + z) # (Nz, Ne)
 
         # Integrate over zp
-        prefact = unit.c / (4.0 * np.pi) * (1.0 + z)**2
+        prefact = consts.c / (4.0 * np.pi) * (1.0 + z)**2
         emiss = self.SpecificXrayNumberEmissivity(Z, Eprime)   # (Nz, Ne)
         tau   = self.optical_depth(z,zp,E_arr)                 # (Nz, Ne)
         
-        integrand = emiss / self.Cosmo.hubble(1+zp)[:, None] * np.exp(-tau)       # (Nz, Ne)
+        integrand = emiss / self.cosmo.hubble(1+zp)[:, None] * np.exp(-tau)       # (Nz, Ne)
         integral = np.trapz(integrand, zp, axis=0)                   # (Ne,)
 
         return prefact * integral
@@ -280,18 +229,18 @@ class XrayHeatingReion:
         E_arr = np.arange(100,2000,100) 
         JX = self.JX(z,E_arr) # X-ray specific number flux [1/eV/cm^2/s/sr]
 
-        nHI = self.Cosmo.nH * (1 + z) ** 3 * (1-xHII_IGM)   # number density of HI outside of UV ionized regions [cm^{-3}]
+        nHI = self.cosmo.nH * (1 + z) ** 3 * (1-xHII_IGM)   # number density of HI outside of UV ionized regions [cm^{-3}]
         xsec_HI = self.photoions_xsec_Verner96(E_arr, 'HI')      # pohotionization cross section with HI [cm^2]
         integrand_HI = (E_arr - self.Eth['HI']) * xsec_HI * JX    
         utot = 4 * np.pi * nHI * np.trapz(integrand_HI, E_arr)      # [eV/cm^3/s]
 
-        nHeI = self.Cosmo.nHe * (1 + z) ** 3 * (1-xHII_IGM) # number density of HeI outside of UV ionized regions [cm^{-3}]
+        nHeI = self.cosmo.nHe * (1 + z) ** 3 * (1-xHII_IGM) # number density of HeI outside of UV ionized regions [cm^{-3}]
         xsec_HeI = self.photoions_xsec_Verner96(E_arr, 'HeI')    # pohotionization cross section with HeI [cm^2]
         integrand_HeI = (E_arr - self.Eth['HeI']) * xsec_HeI * JX
         utot += 4 * np.pi * nHeI * np.trapz(integrand_HeI, E_arr)   # [eV/cm^3/s]
 
         if self.include_HeII:
-            nHeII = self.Cosmo.nHe * (1 + z) ** 3 * xHII_IGM    # number density of HeI outside of UV ionized regions [cm^{-3}]
+            nHeII = self.cosmo.nHe * (1 + z) ** 3 * xHII_IGM    # number density of HeI outside of UV ionized regions [cm^{-3}]
             xsec_HeII = self.photoions_xsec_Verner96(E_arr, 'HeII')    # pohotionization cross section with HeII [cm^2]
             integrand_HeII = (E_arr - self.Eth['HeII']) * xsec_HeII * JX
             utot += 4 * np.pi * nHeII * np.trapz(integrand_HeII, E_arr)   # [eV/cm^3/s]
@@ -300,13 +249,13 @@ class XrayHeatingReion:
         fheat = pre.fheat_interp(xHII_IGM)
         fion = pre.fion_interp(xHII_IGM)
         
-        # Compute hydrogen ionization rate per unit volume due to primary and secondary interactions. 
+        # Compute hydrogen ionization rate per consts volume due to primary and secondary interactions. 
         integrand_HI = xsec_HI * JX
         PrimaryIonRate = 4 * np.pi * nHI * np.trapz(integrand_HI, E_arr)   # [1/cm^3/s] primary ionizations only
         SecondaryIonRate = utot * fion / self.Eth['HI']  # [1/cm^3/s] Secondary ionizations
         IonRate = SecondaryIonRate + PrimaryIonRate # [1/cm^3/s] total ionization rate
         
-        # Compute heating rate per unit volume
+        # Compute heating rate per consts volume
         HeatRate = utot*fheat
                 
         return HeatRate, IonRate #[eV / cm^3 / s], [1 / cm^3 / s]
@@ -367,8 +316,8 @@ class XrayHeatingReion:
         E_arr = 1000 * np.linspace(Emin, Emax, int(np.ceil(Emax-Emin))*50) # [eV]
         
         # Create array for all redshifts that contribute to unresolved X-rays
-        z_arr = np.logspace(np.log10(zX), np.log10(self.zstar), 250)  #
-
+        zlen = max(2, int((self.zstar-zX)*10)) # resolution of 0.1 in z
+        z_arr = np.linspace(zX, self.zstar, zlen)  # Linear spacing in z for better resolution at low z where attenuation is stronger
         # Compute emissivity for each (E, z) pair
         integrand = np.zeros((len(E_arr), len(z_arr))) 
         if attenuate:
@@ -379,12 +328,12 @@ class XrayHeatingReion:
                 tau_ISM = MW.tau_MW(E/1000,fmol,NH)
 
                 eps_x_arr = self.SpecificXrayNumberEmissivity(z_arr,E_z)*np.exp(-tau_IGM)*np.exp(-tau_ISM)
-                integrand[i, :] = eps_x_arr / self.Cosmo.hubble(1+z_arr) # [1/eV/cm^3]
+                integrand[i, :] = eps_x_arr / self.cosmo.hubble(1+z_arr) # [1/eV/cm^3]
         else:
             for i, E in enumerate(E_arr):
                 E_z = E * (1 + z_arr)  # [eV]
                 eps_x_arr = self.SpecificXrayNumberEmissivity(z_arr,E_z)
-                integrand[i, :] = eps_x_arr / self.Cosmo.hubble(1+z_arr) # [1/eV/cm^3]
+                integrand[i, :] = eps_x_arr / self.cosmo.hubble(1+z_arr) # [1/eV/cm^3]
         
         # Integrate over z first
         integral_over_z = np.trapz(integrand, z_arr, axis=1)
@@ -392,37 +341,58 @@ class XrayHeatingReion:
         # Integrate over E
         final_integral = np.trapz(E_arr * integral_over_z, E_arr) / (4 * np.pi) # [eV/cm^3/sr]
 
-        return unit.c*final_integral/1000 # [keV/cm^2/s/sr]
-
-
-    # #No optical depth
-    # def CXB_notau(self, z_un, Emin, Emax):
-    #     """
-    #     z_un - Maximal redshift of resolved sources
-    #     Emin, Emax - Range of observed band [keV]
-    #     """
-
-    #     # Create energy array over observed band
-    #     E_arr = 1000 * np.linspace(Emin, Emax, int(np.ceil(Emax-Emin))*100) # [eV]
-    #     # Create redshift for all redshifts that contribute to unresolved X-rays
-    #     z_arr = np.logspace(np.log10(z_un), np.log10(self.zstar), 1000)  #
-
-    #     # Compute epsilon_x(E(1+z), z) / H(z) for each (E, z) pair
-    #     integrand = np.zeros((len(E_arr), len(z_arr))) 
-    #     for i, E in enumerate(E_arr):
-    #         E_z = E * (1 + z_arr)  # [eV]
-    #         eps_x_arr = self.SpecificXrayNumberEmissivity(z_arr,E_z)
-    #         integrand[i, :] = eps_x_arr / unit.hubble(1+z_arr) # [1/eV/cm^3]
-    #     # Integrate over z first
-    #     integral_over_z = np.trapz(integrand, z_arr, axis=1)
-
-    #     # Integrate over E
-    #     final_integral = np.trapz(E_arr * integral_over_z, E_arr) / (4 * np.pi) # [eV/cm^3/sr]
-
-    #     return unit.c*final_integral/1000 # [keV/cm^2/s/sr]
+        return consts.c*final_integral/1000 # [keV/cm^2/s/sr]
 
 
 
+ # # Exact computation
+    # def optical_depth(self, z, zp_arr, E_arr):
+    #     ''' 
+    #     Compute the optical depth of a photon emitted at z' and observed at z with energy E, tau(E,z,z') (Eq.35):
+
+    #     Parameters
+    #     ----------
+    #         z : float 
+    #             Final propagation redshift 
+    #         zp_arr : 1D array 
+    #             Initial propagation redshift (zp>z)
+    #         E_arr : 1D array
+    #             Energy at z [eV] 
+    #     Returns
+    #     -------
+    #         tau_2D : 2D array 
+    #             Array of optical depths with shape (len(zp_arr)), len(E_arr))
+    #     '''
+
+    #     # tau is an integral over z'' between [z',z]
+    #     # Create 2D matrix with rows running from zp to z for all zp's in zp_arr
+    #     zp_col = zp_arr[:,None] # Column vector
+    #     zpp_len = int(max(2, np.max(zp_arr - z)))
+    #     zpp_matrix = np.linspace(zp_col, z, zpp_len, axis=1)[:,:,0] # (len(zp_arr), zpp_len)
+    #     rs_pp_matrix = 1 + zpp_matrix 
+
+    #     # Compute prefactors and ionized fraction outside integral to improve runtime
+    #     preFact = -consts.c*rs_pp_matrix**2/self.cosmo.hubble(rs_pp_matrix)
+
+    #     Q_ion_pp = self.Q_ion_interp(zpp_matrix) 
+        
+    #     # Energy at z_pp 
+    #     E_pp = E_arr * rs_pp_matrix[:,:,None] /(1+z) # (len(zp_arr), zpp_len, len(E_arr))
+       
+    #     # Broadcast energy dimension
+    #     preFact = np.broadcast_to(preFact[:, :, None], E_pp.shape)
+    #     Q_ion_pp = np.broadcast_to(Q_ion_pp[:, :, None], E_pp.shape)
+    #     zpp = np.broadcast_to(zpp_matrix[:,:,None], E_pp.shape)
+
+    #     # Solve integral
+    #     integrand = np.zeros_like(E_pp,dtype = float)
+    #     integrand += preFact * self.photoions_xsec_Verner96(E_pp, 'HI') * self.cosmo.nH * (1-Q_ion_pp)
+    #     integrand += preFact * self.photoions_xsec_Verner96(E_pp, 'HeI') * self.cosmo.nHe * (1-Q_ion_pp)                           
+        
+
+    #     tau_2D = np.trapz(integrand, zpp,axis = 1)
+    #     #print(tau_2D)
+    #     return(tau_2D)
     
 
 

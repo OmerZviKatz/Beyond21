@@ -3,7 +3,7 @@ import matplotlib.cm as cm
 import numpy as np
 import warnings
 from scipy.interpolate import interp1d
-import beyond21.constants as unit
+import beyond21.constants as consts
 import beyond21.evolution as Eobj
 from beyond21.cosmology import Cosmology as CObj
 
@@ -21,8 +21,8 @@ class GlobalWrapper(Eobj.evolver):
         self.verify_xray_params(xray_params, star_formation_params['model'])
         self.verify_reion_params(reion_params, star_formation_params['model'])
         
-        CosmoObj = CObj(self.cosmo_params)
-        super().__init__(CosmoObj,
+        cosmo = CObj(self.cosmo_params)
+        super().__init__(cosmo,
                          star_formation_params = star_formation_params,
                          xray_params = xray_params,
                          reion_params = reion_params,
@@ -116,10 +116,10 @@ class GlobalWrapper(Eobj.evolver):
     def SFRD(self, z):
         # Wrapper SFRD function for convenience
         
-        #Unit conversion
-        cm_to_Mpc = unit.Centimeter/unit.Mpc
-        eV_to_Ms = 1/unit.M_s
-        sec_to_year = unit.Sec/unit.Year
+        #consts conversion
+        cm_to_Mpc = consts.Centimeter/consts.Mpc
+        eV_to_Ms = 1/consts.M_s
+        sec_to_year = consts.Sec/consts.Year
         if self.Pop != 'PopII+PopIII':
             return self.SFRD_interp(z)* eV_to_Ms / cm_to_Mpc**3 / sec_to_year
         SFRDII = self.SFRD_interp[0](z)* eV_to_Ms / cm_to_Mpc**3 / sec_to_year
@@ -129,17 +129,18 @@ class GlobalWrapper(Eobj.evolver):
     
     def UVLF(self, z, Muv, sigma_MUV, Mh = None, kUV=1.15e-28):
         if self.Pop == 'PopII':
-            UVLF = self.UVobj.UVLF_Stoch_continuous(z, Muv, sigma_MUV, 'II', Mh = None, kUV=1.15e-28)
+            UVLF = self.sfr_ion.UVLF_Stoch_continuous(z, Muv, sigma_MUV, 'II', Mh = None, kUV=1.15e-28)
         elif self.Pop == 'PopIII':
-            UVLF = self.UVobj.UVLF_Stoch_continuous(z, Muv, sigma_MUV, 'II', Mh = None, kUV=1.15e-28)
+            UVLF = self.sfr_ion.UVLF_Stoch_continuous(z, Muv, sigma_MUV, 'II', Mh = None, kUV=1.15e-28)
         elif self.Pop == 'PopII+PopIII':
-            UVLFII = self.UVobj.UVLF_Stoch_continuous(z, Muv, sigma_MUV, 'II', Mh = None, kUV=1.15e-28)
-            UVLFIII = self.UVobj.UVLF_Stoch_continuous(z, Muv, sigma_MUV, 'III', Mh = None, kUV=1.15e-28)
+            UVLFII = self.sfr_ion.UVLF_Stoch_continuous(z, Muv, sigma_MUV, 'II', Mh = None, kUV=1.15e-28)
+            UVLFIII = self.sfr_ion.UVLF_Stoch_continuous(z, Muv, sigma_MUV, 'III', Mh = None, kUV=1.15e-28)
             UVLF = (UVLFII,UVLFIII)
         return UVLF
 
     def JLW(self, z):
-        return self.SF.J_LW(z)
+        out = self.sfr_ion.JLW_interp(z)
+        return float(out) if np.ndim(out) == 0 else out
 
     def default_figure(self, axis, xlabel = None, ylabel = None, xscale = 'log', yscale = 'log', xlim = None):
         fig, axis = plt.subplots(figsize=(7.5, 4))
@@ -196,7 +197,7 @@ class GlobalWrapper(Eobj.evolver):
         return self.plot_quantity(self.rs, self.TCMB, 'Redshift (1 + z)',  'CMB Temperature [K]', axis, **plot_kwargs)
 
     def plot_xHI(self, axis=None, **plot_kwargs):
-        return self.plot_quantity(self.rs, self.xHI,'Redshift (1 + z)',  r'Neutral Hydrogen Fraction $x_{\mathrm{HI}}$', axis, **plot_kwargs)
+        return self.plot_quantity(self.rs, self.xHI,'Redshift (1 + z)',  r'Neutral Hydrogen Fraction $x_{\mathrm{HI}}$', axis, yscale = 'linear', **plot_kwargs)
 
     def plot_SFRD(self, z_arr = np.linspace(5,30,150), axis = None, **plot_kwargs):
         """ Plots the SFRD [Msolar/yr/Mpc^3] as a function of redshift
@@ -248,7 +249,30 @@ class GlobalWrapper(Eobj.evolver):
             axis.plot(MagArr, UVLFII+UVLFIII, linewidth = 3, linestyle = 'dashed', label = 'PopII+PopIII', color = Greys(0.7))
         return fig, axis
 
-    def plot_JLW(self, z_arr = np.linspace(5,30,150), axis = None, **plot_kwargs):
+    def plot_JLW(self, z_arr = np.linspace(6,30,150), axis = None, **plot_kwargs):
         if not axis:
-            return self.plot_quantity(1+z_arr, self.UVobj.JLW_interp(z_arr),'Redshift (1 + z)',  r'$J_{\rm LW} \ [10^{-21} \ {\rm erg \ Hz^{-1} \ s^{-1} \ cm^{-2}}]$', axis, **plot_kwargs, xscale = 'linear')
-        return self.plot_quantity(1+z_arr, self.UVobj.JLW_interp(z_arr),'Redshift (1 + z)',  r'$J_{\rm LW}$', axis, **plot_kwargs)
+            return self.plot_quantity(1+z_arr, self.sfr_ion.JLW_interp(z_arr),'Redshift (1 + z)',  r'$J_{\rm LW} \ [10^{-21} \ {\rm erg \ cm^{-2} \ sr^{-1}}]$', axis, **plot_kwargs, xscale = 'linear')
+        return self.plot_quantity(1+z_arr, self.sfr_ion.JLW_interp(z_arr),'Redshift (1 + z)',  r'$J_{\rm LW}$', axis, **plot_kwargs)
+
+    def plot_Jalpha(self, axis = None, **plot_kwargs):
+        return self.plot_quantity(self.rs, self.Jalpha,'Redshift (1 + z)',  r'$J_\alpha$ $[{\rm cm^{-2} \ sr^{-1}}]$', axis, **plot_kwargs, xscale = 'linear')
+
+    def CXB(self,zX, Emin, Emax, attenuate = False, NH = 1e20, fmol = 0.2):
+        """
+        Compute the contribution to the cosmic X-ray background (CXB)
+        in the observed band [Emin, Emax] keV from sources at z > zX.
+
+        Parameters
+        ----------
+        zX : float
+            Minimum source redshift.
+        Emin, Emax : float
+            Lower and upper bounds of the observed energy band [keV].
+        attenuate : bool, optional
+            If True, include attenuation by the IGM and Milky Way.
+        NH : float, optional
+            Milky Way hydrogen column density [cm^-2].
+        fmol : float, optional
+            Molecular hydrogen fraction used in the MW absorption model.
+        """
+        return self.xrays.CXB(zX,0.5,2, attenuate = attenuate, NH = NH, fmol = fmol)/consts.erg

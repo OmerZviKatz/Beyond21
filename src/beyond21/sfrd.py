@@ -1,25 +1,19 @@
 import numpy as np
 from numpy import trapz
 from importlib.resources import files
-import beyond21.constants as unit
+import beyond21.constants as consts
 
 
-class SFRD_and_UV:
+class SFRD:
     
-    def __init__(self, CosmoObj, SF_params):
-        self.Cosmo = CosmoObj
+    def __init__(self, cosmo, SF_params):
+        self.cosmo = cosmo
         self.SF_params = SF_params
         
         if 'A_LW' in SF_params: #Run with LW feedback
             self.LW_feedback = True 
             self.JLW_interp = False
             self.fmod_interp = np.load(files("beyond21").joinpath("data", "fmod/fmod_interp_Ahn.npy"),allow_pickle = True).item() 
-
-            #nu_arr = np.linspace(11.2,13.5999,100)/unit.Planck
-            #dN_dnuII = [ scan.dN_dnu_Lyman(nu,'II') for nu in nu_arr] #1/Hz
-            #eps_b_avgII = np.sum(dN_dnuII*nu_arr*unit.Planck/unit.erg)/len(nu_arr) #erg/Hz
-            self.eps_b_avgIII = 1.1535467142318002e-22 #erg/Hz
-            self.eps_b_avgII = 2.350472821541398e-22 #erg/Hz
         else:
             self.LW_feedback = False
 
@@ -31,7 +25,7 @@ class SFRD_and_UV:
         
     def Mcut_eV(self,z, pop, JLW = None):
         
-        Matom = 3.3 * 1e7 * unit.M_s * ((1 + z) / 21) ** (-3 / 2)  
+        Matom = 3.3 * 1e7 * consts.M_s * ((1 + z) / 21) ** (-3 / 2)  
         if pop == 'II':
             Mcut0 = self.SF_params['M_cutII']
         if pop == 'III':
@@ -40,12 +34,12 @@ class SFRD_and_UV:
         if Mcut0 == 'Matom':
             return Matom
         
-        Mcut0_eV = Mcut0 * unit.M_s
+        Mcut0_eV = Mcut0 * consts.M_s
         
         if Mcut0_eV> Matom:
             return Mcut0_eV
         
-        Mmol = 3.3 * 1e7 * unit.M_s * (1 + z) ** (-3 / 2) 
+        Mmol = 3.3 * 1e7 * consts.M_s * (1 + z) ** (-3 / 2) 
         
         if self.LW_feedback:
             if self.JLW_interp:
@@ -76,31 +70,31 @@ class SFRD_and_UV:
         Fstar = self.SF_params['F_starII']
 
         # Double PL 
-        den = (Mh/unit.M_s/Mpivot)**(alphaII) + (Mh/unit.M_s/Mpivot)**(betaII)
+        den = (Mh/consts.M_s/Mpivot)**(alphaII) + (Mh/consts.M_s/Mpivot)**(betaII)
         fstar = Fstar/den
         fstar[fstar>1] = 1
-        return self.Cosmo.Omega_b/self.Cosmo.Omega_m * fstar * Mh
+        return self.cosmo.Omega_b/self.cosmo.Omega_m * fstar * Mh
 
     
     
     def MstarIII(self,Mh, z):
-        temp = self.SF_params['F_starIII'] * pow(Mh/1e7/unit.M_s, -self.SF_params['alphaIII'])
+        temp = self.SF_params['F_starIII'] * pow(Mh/1e7/consts.M_s, -self.SF_params['alphaIII'])
         temp[temp>1] = 1
         fstarIII = temp
-        return self.Cosmo.Omega_b/self.Cosmo.Omega_m*fstarIII*Mh
+        return self.cosmo.Omega_b/self.cosmo.Omega_m*fstarIII*Mh
 
     
     def SFRII(self,Mh, z):
         # Mh [eV]
         'Return: SFR(z) [eV/s]'
-        timescale = self.SF_params['eps_t'] / self.Cosmo.hubble(1+z)
+        timescale = self.SF_params['eps_t'] / self.cosmo.hubble(1+z)
         MstarII = self.MstarII(Mh, z)
         return MstarII/timescale
 
     def SFRIII(self,Mh, z):
         # Mh [eV]
         'Return: SFR(z) [eV/s]'
-        timescale = self.SF_params['eps_t'] / self.Cosmo.hubble(1+z)
+        timescale = self.SF_params['eps_t'] / self.cosmo.hubble(1+z)
         MstarIII = self.MstarIII(Mh, z)
         return MstarIII/timescale
 
@@ -135,9 +129,9 @@ class SFRD_and_UV:
 
     def Mean_MUV_from_Mh(self,Mh,z,kUV,pop):
         if pop == 'II':
-            SFR = self.SFRII(Mh, z)/unit.M_s/unit.Sec*unit.Year # [Msolar/yr]
+            SFR = self.SFRII(Mh, z)/consts.M_s/consts.Sec*consts.Year # [Msolar/yr]
         elif pop == 'III':
-            SFR = self.SFRIII(Mh, z)/unit.M_s/unit.Sec*unit.Year
+            SFR = self.SFRIII(Mh, z)/consts.M_s/consts.Sec*consts.Year
         LUV = SFR/kUV #erg/s/Hz
         MUV = 51.63 - 2.5 * np.log10(LUV) #mag
         return MUV
@@ -174,19 +168,19 @@ class SFRD_and_UV:
 
         if pop == 'III':
             McutIII = self.Mcut_eV(z,'III')
-            fgal = self.fgalIII(Mh*unit.M_s, McutII, McutIII)
+            fgal = self.fgalIII(Mh*consts.M_s, McutII, McutIII)
         else:
-            fgal = self.fgalII(Mh*unit.M_s, McutII)
+            fgal = self.fgalII(Mh*consts.M_s, McutII)
 
         # ----- HMF -----
-        dndlMh = self.Cosmo.dndlnm(Mh*unit.M_s, z)  # [cm^-3]
+        dndlMh = self.cosmo.dndlnm(Mh*consts.M_s, z)  # [cm^-3]
 
         # convert to Mpc^-3
-        cm3_to_Mpc3 = (unit.Mpc / unit.Centimeter)**3
+        cm3_to_Mpc3 = (consts.Mpc / consts.Centimeter)**3
         fact = dndlMh * fgal * cm3_to_Mpc3   # (Nm,)
 
         # ----- mean MUV(Mh) -----
-        mu = self.Mean_MUV_from_Mh(Mh*unit.M_s, z, kUV, pop)  # (Nm,)
+        mu = self.Mean_MUV_from_Mh(Mh*consts.M_s, z, kUV, pop)  # (Nm,)
 
         # reshape for broadcasting
         mu  = mu[:, None]     # (Nm,1)
@@ -241,17 +235,17 @@ class SFRD_and_UV:
     #     McutII = self.Mcut_eV(z,'II')
     #     if pop == 'III':
     #         McutIII = self.Mcut_eV(z,'III')
-    #         fgal = self.fgalIII(Mh*unit.M_s, McutII, McutIII)
+    #         fgal = self.fgalIII(Mh*consts.M_s, McutII, McutIII)
     #     elif pop == 'II':
-    #         fgal = self.fgalII(Mh*unit.M_s, McutII)
+    #         fgal = self.fgalII(Mh*consts.M_s, McutII)
 
-    #     dndlMh = self.dndlnm(Mh*unit.M_s, z) * (unit.Mpc / unit.Centimeter)**3# (Nm,) [Mpc^-3]
+    #     dndlMh = self.dndlnm(Mh*consts.M_s, z) * (consts.Mpc / consts.Centimeter)**3# (Nm,) [Mpc^-3]
     #     fact = dndlMh * fgal 
     #     fact = fact[:, None] # Broadcase to (Nm,1) 
 
 
     #     # Mean UV magnitude at each halo mass
-    #     mu = self.Mean_MUV_from_Mh(Mh*unit.M_s,z,kUV,pop)          # (Nm,)
+    #     mu = self.Mean_MUV_from_Mh(Mh*consts.M_s,z,kUV,pop)          # (Nm,)
     #     mu = mu[:, None]                                # (Nm,1)
 
     #     # Bin edges reshaped for broadcasting

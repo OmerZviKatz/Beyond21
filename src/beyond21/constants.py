@@ -44,7 +44,6 @@ Day  = 86400 * Sec
 Year = 365 * Day
 Hz   = 1 / Sec
 
-
 #Length
 Centimeter = 5.067730716156396e4
 Meter      = 100 * Centimeter
@@ -52,7 +51,6 @@ Mpc        = 3.086e24 * Centimeter
 kpc        = 1e-3 * Mpc
 pc         = 1e-3 * kpc
 Angstrom   = 1e-10 * Meter
-
 
 #Mass and energy
 Kilogram = 5.6095883571872e35
@@ -65,4 +63,6 @@ M_s      = 1.98847e30 * Kilogram
 #           Common unit conversions        #
 ############################################
 cm3_to_Mpc3 = (Mpc / Centimeter)**3
+deg2_to_sr = np.pi**2/180**2
+
 
