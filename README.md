@@ -6,18 +6,15 @@
 It provides a flexible and modular pipeline to compute the coupled
 evolution of early stellar populations, radiation backgrounds, and the
 intergalactic medium, enabling predictions for multiple observables
-within a single framework.
+within a single framework. 
 
 Key outputs include:
-
 -   Global **21-cm signal**
 -   **UV luminosity functions (UVLFs)**
 -   **Ionization history**
--   Contribution to the **cosmic X-ray background (CXB)**
+-   Contributions to the **cosmic X-ray background (CXB)**
 
-The modular design allows straightforward modification of astrophysical
-prescriptions and the incorporation of new physics.
-
+Beyond21 was designed with modularity in mind, allowing straightforward modification of astrophysical prescriptions and the incorporation of new physics.
 ------------------------------------------------------------------------
 
 # Installation

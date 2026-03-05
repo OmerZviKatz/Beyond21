@@ -116,11 +116,11 @@ LyalphaHeat_Injected_low = reg_grid_interp(LyalphaHeat_Injected_raw,Tbaryon_arr,
 LyalphaHeat_Continuum_low = reg_grid_interp(LyalphaHeat_Continuum_raw,Tbaryon_arr,Ts_arr,tauGP_arr).interp3D_sorted_single
 
 #Pre-computed grid - valid for Ts in [100,300], Tk in [1,100], and tauGP in [1e4,1e7]
-Ts_arr = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids_highTk/Ts_Heat"))
-Tbaryon_arr = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids_highTk/Tk_Heat"))
-tauGP_arr = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids_highTk/tauGP_Heat"))
-LyalphaHeat_Injected_raw = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids_highTk/HeatI")) 
-LyalphaHeat_Continuum_raw = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids_highTk/HeatC"))
+Ts_arr = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids_highTK/Ts_Heat"))
+Tbaryon_arr = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids_highTK/Tk_Heat"))
+tauGP_arr = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids_highTK/tauGP_Heat"))
+LyalphaHeat_Injected_raw = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids_highTK/HeatI")) 
+LyalphaHeat_Continuum_raw = np.load(files("beyond21").joinpath("data", "lya_heat_grids/LyalphaHeating_Grids_highTK/HeatC"))
 
 LyalphaHeat_Injected_high = reg_grid_interp(LyalphaHeat_Injected_raw,Tbaryon_arr,Ts_arr,tauGP_arr).interp3D_sorted_single
 LyalphaHeat_Continuum_high = reg_grid_interp(LyalphaHeat_Continuum_raw,Tbaryon_arr,Ts_arr,tauGP_arr).interp3D_sorted_single
