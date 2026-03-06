@@ -7,7 +7,6 @@ import beyond21.constants as consts
 import beyond21.evolution as Eobj
 from beyond21.cosmology import Cosmology as CObj
 
-warnings.simplefilter("always", category=UserWarning)
 Blues = cm.get_cmap('Blues')
 Reds = cm.get_cmap('Reds')
 Greys = cm.get_cmap('Greys')
@@ -48,8 +47,8 @@ class GlobalWrapper(Eobj.evolver):
         if ('A_LW' in star_formation_params) != ('B_LW' in star_formation_params):
             raise ValueError("Invalid LW feedback parameters in 'star_formation_params'.\n"
                 "You have provided only 'A_LW' or only 'B_LW'.\n"
-                "- To run without LW feedback, remove both 'A_LW' and 'BLW'.\n"
-                "- To run with LW feedback, include both 'A_LW' and 'BLW'.")
+                "- To run without LW feedback, remove both 'A_LW' and 'B_LW'.\n"
+                "- To run with LW feedback, include both 'A_LW' and 'B_LW'.")
 
         if ('A_vrel' in star_formation_params) != ('B_vrel' in star_formation_params):
             raise ValueError("Invalid v_rel feedback parameters in 'star_formation_params'.\n"
@@ -127,14 +126,12 @@ class GlobalWrapper(Eobj.evolver):
         return [SFRDII, SFRDIII] # [Msolar/yr/Mpc^3]
 
     
-    def UVLF(self, z, Muv, sigma_MUV, Mh = None, kUV=1.15e-28):
+    def UVLF(self, z, Muv, sigma_MUV, Mh = None, kUVII=1.15e-28, kUVIII=1.15e-28):
         if self.Pop == 'PopII':
-            UVLF = self.sfr_ion.UVLF_Stoch_continuous(z, Muv, sigma_MUV, 'II', Mh = None, kUV=1.15e-28)
-        elif self.Pop == 'PopIII':
-            UVLF = self.sfr_ion.UVLF_Stoch_continuous(z, Muv, sigma_MUV, 'II', Mh = None, kUV=1.15e-28)
+            UVLF = self.sfr_ion.UVLF_Stoch_continuous(z, Muv, sigma_MUV, 'II', Mh = Mh, kUV=kUVII)
         elif self.Pop == 'PopII+PopIII':
-            UVLFII = self.sfr_ion.UVLF_Stoch_continuous(z, Muv, sigma_MUV, 'II', Mh = None, kUV=1.15e-28)
-            UVLFIII = self.sfr_ion.UVLF_Stoch_continuous(z, Muv, sigma_MUV, 'III', Mh = None, kUV=1.15e-28)
+            UVLFII = self.sfr_ion.UVLF_Stoch_continuous(z, Muv, sigma_MUV, 'II', Mh = Mh, kUV=kUVII)
+            UVLFIII = self.sfr_ion.UVLF_Stoch_continuous(z, Muv, sigma_MUV, 'III', Mh = Mh, kUV=kUVIII)
             UVLF = (UVLFII,UVLFIII)
         return UVLF
 
@@ -224,7 +221,7 @@ class GlobalWrapper(Eobj.evolver):
             axis.plot(z_arr + 1, SFRDII+SFRDIII, linewidth = 3, linestyle = 'dashed', label = 'PopII+PopIII', color = Greys(0.7))
         return fig, axis
 
-    def plot_UVLF(self,z, MagArr = np.linspace(-20,-5, 50), sigma_MUV = 0.01, kUV=1.15e-28, axis = None, **plot_kwargs):
+    def plot_UVLF(self,z, MagArr = np.linspace(-20,-5, 50), sigma_MUV = 0.01, kUVII=1.15e-28, kUVIII=1.15e-28, axis = None, **plot_kwargs):
         """ Calculates the UVLF [1/Mpc^3/Mag] at redshift z over magnitude array Mag_arr 
             axis, ***plot_kwargs like in plot_Tbaryon """
 
@@ -237,13 +234,13 @@ class GlobalWrapper(Eobj.evolver):
         plot_kwargs = self.default_plot_kwargs(**plot_kwargs) # Set default plot style if not provided
 
         if self.Pop == 'PopII':
-            axis.plot(MagArr, self.UVLF(z, MagArr, sigma_MUV, kUV=1.15e-28), **plot_kwargs)
+            axis.plot(MagArr, self.UVLF(z, MagArr, sigma_MUV, kUVII=kUVII), **plot_kwargs)
         elif self.Pop == 'PopIII':
-            axis.plot(MagArr, self.UVLF(z, MagArr, sigma_MUV, kUV=1.15e-28), **plot_kwargs)
+            axis.plot(MagArr, self.UVLF(z, MagArr, sigma_MUV, kUVIII=kUVIII), **plot_kwargs)
         elif self.Pop == 'PopII+PopIII':
             if plot_kwargs:
                 print('Line styling is currently unavailable for two populations. Sorry for the inconvenience. \nIf needed it is possible to change styling directly in plot_SFRD.')
-            UVLFII,UVLFIII = self.UVLF(z, MagArr, sigma_MUV, kUV=1.15e-28)
+            UVLFII,UVLFIII = self.UVLF(z, MagArr, sigma_MUV, kUVII=kUVII, kUVIII = kUVIII)
             axis.plot(MagArr, UVLFII, linewidth = 3, label = 'PopII', color = Blues(0.8))
             axis.plot(MagArr, UVLFIII, linewidth = 3, label = 'PopIII', color = Reds(0.7))
             axis.plot(MagArr, UVLFII+UVLFIII, linewidth = 3, linestyle = 'dashed', label = 'PopII+PopIII', color = Greys(0.7))
@@ -275,4 +272,4 @@ class GlobalWrapper(Eobj.evolver):
         fmol : float, optional
             Molecular hydrogen fraction used in the MW absorption model.
         """
-        return self.xrays.CXB(zX,0.5,2, attenuate = attenuate, NH = NH, fmol = fmol)/consts.erg
+        return self.xrays.CXB(zX,Emin,Emax, attenuate = attenuate, NH = NH, fmol = fmol)/consts.erg

@@ -2,7 +2,6 @@ import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
 import warnings
-warnings.simplefilter("always", category=UserWarning)
 
 import beyond21.constants as consts
 import beyond21.sfrd_ion_uv as fobj
