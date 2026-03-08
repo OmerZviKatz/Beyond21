@@ -157,7 +157,7 @@ class SFRD:
         """
 
         Muv = np.asarray(Muv, float)
-        if Mh:
+        if Mh is not None:
             Mh  = np.asarray(Mh, float)
         else:
             Mhlen = max(1000,len(Muv)/sigma_MUV*5)
