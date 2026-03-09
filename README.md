@@ -17,7 +17,6 @@ Key outputs include:
 
 We encourage users to take advantage of the modular structure and short running time of Beyond21 to test new astrophysical models and explore physics within and beyond the Standard Model.
 
-
 ------------------------------------------------------------------------
 
 # Installation
@@ -75,7 +74,13 @@ To get started with Beyond21, we recommend exploring the notebooks in the
 
 ------------------------------------------------------------------------
 
+# Extensions
+
+See the 2cDM branch for an example of a beyond-Standard-Model implementation in Beyond21
+
+------------------------------------------------------------------------
+
 # Citation
 
-If you use **Beyond21** in your research, please cite the corresponding
-paper (to appear).
+If you use **Beyond21** in your research, please cite [Katz (2026)](https://arxiv.org/pdf/2603.04542).
+
