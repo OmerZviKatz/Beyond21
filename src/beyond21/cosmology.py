@@ -101,7 +101,7 @@ class Cosmology:
         return self.H0*np.sqrt(self.Omega_r*rs**4 + self.Omega_m*rs**3 + self.Omega_lambda)
 
     def dzdt(self,z):
-        return -self.Cosmo.hubble(1+z)*(1+z)
+        return -self.hubble(1+z)*(1+z)
 
     def rs_from_log_a(self,log_a): 
         return (1 / np.exp(log_a))

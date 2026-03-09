@@ -157,7 +157,8 @@ class sort_grid_interp:
         x_point,y_point = point
     
         if x_point>self.xarr[-1] or x_point<self.xarr[0] or y_point>self.yarr[-1] or y_point<self.yarr[0]:
-            raise ValueError("Extrapolate = False and point is out of bound")
+            raise ValueError("Extrapolate = False and point" +str(point)+ " is out of bound")
+            #raise ValueError("Extrapolate = False and point is out of bound")
 
         x_below_index = QuickSearch(self.xarr,x_point)
         y_below_index = QuickSearch(self.yarr,y_point)

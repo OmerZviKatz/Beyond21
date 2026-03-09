@@ -8,12 +8,13 @@ import beyond21.sfrd_ion_uv as fobj
 import beyond21.xrays as Xobj
 import beyond21.interpolations as pre
 import beyond21.non_ion_uv as Uobj
-import beyond21.inter_galactic_medium as IGM
+import beyond21.igm_mdm.inter_galactic_medium as IGM
+import beyond21.igm_mdm.mdm as IGM_mDM
 
 
 class evolver():
     
-    def __init__(self, cosmo, star_formation_params = None, xray_params = None, reion_params = None, photoheat = True, Lya_Heat = True, CMB_Heat = True):
+    def __init__(self, cosmo, star_formation_params = None, xray_params = None, reion_params = None, DM_params = None, photoheat = True, Lya_Heat = True, CMB_Heat = True):
         self.cosmo = cosmo
         self.Pop = star_formation_params.get('model') #Stellar populations of interest ('PopII' / 'PopIII' / 'PopII+PopIII')
         self.CMB_Heat = CMB_Heat
@@ -22,6 +23,8 @@ class evolver():
         self.generate_UVion_SFRD_interps(reion_params, star_formation_params, photoheat)
         self.generate_Xrays_heat_ion_interps(xray_params)
         self.generate_stellar_Lya_interps(reion_params)
+        if DM_params != None:
+            self.init_IDM(DM_params)
         self.Ts_prev = 0
     
     def generate_UVion_SFRD_interps(self,reion_params,star_formation_params, photoheat):
@@ -35,7 +38,6 @@ class evolver():
             populations = self.Pop, zstar = 50, zmin = 1, xe_max = 0.99999, xe_min = 1e-5, 
             zlen = 50, xe_len = 25, include_HeII = False 
         )
-
         self.HeatRate_interp, self.ReionRate_interp = self.xrays.heat_and_ion_rate_grid_interpolation_funcions()
         return
 
@@ -47,6 +49,53 @@ class evolver():
         J_alpha_arr = self.lya.Jalpha_star(z_arr_for_Jalpha, self.SFRD_interp)
         self.Jalphastar_interps =[interp1d(z_arr_for_Jalpha,J_alpha_arr[0]),interp1d(z_arr_for_Jalpha,J_alpha_arr[1]),interp1d(z_arr_for_Jalpha,J_alpha_arr[2])]            
         return 
+
+    def init_IDM(self,DM_params):
+        self.DM_params = DM_params
+        
+        if DM_params == None:
+                #No DM-SM interactions
+                self.IDM = False
+                self.CDM = False
+                self.mm, self.sigma_e, self.f_m, self.mC, self.alphaI_alphaC = np.ones(7)
+
+        elif DM_params.get('mC') == None:
+            #IDM-SM interactions but no IDM-CDM interactions
+            self.IDM = True
+            self.CDM = False
+            self.mm = DM_params['mm']
+            Q = DM_params['Q']
+            self.f_m = DM_params['f_m']
+            red_mass_eI = consts.m_e * self.mm / (consts.m_e + self.mm)
+            self.sigma_e = Q**2 * 2 * 16 * np.pi * consts.alphaEM ** 2 * red_mass_eI ** 2 / (consts.alphaEM ** 4 * consts.m_e ** 4)
+            self.mC = 1e7 #mC and alphaI_alphaC won't be used because CDM = False
+            self.alphaI_alphaC =1e-20
+            self.m_phi = DM_params['m_phi'] if ('m_phi' in DM_params) else 1e-6
+
+        else:
+            #IDM-SM interactions and IDM-CDM interactions 
+            self.IDM = True
+            self.CDM = True
+            self.mm = DM_params['mm']
+            Q = DM_params['Q']
+            self.f_m = DM_params['f_m']
+            self.mC = DM_params['mC']
+            alphaI_alphaC = DM_params['alphaI_alphaC']
+            red_mass_eI = consts.m_e * self.mm / (consts.m_e + self.mm)
+            self.sigma_e = Q**2 * 2 * 16 * np.pi * consts.alphaEM ** 2 * red_mass_eI ** 2 / (consts.alphaEM ** 4 * consts.m_e ** 4)
+            self.m_phi = DM_params['m_phi'] if ('m_phi' in DM_params) else 1e-6
+            
+            def max_alphaI_alphac(m_I, m_C, f, sigmabar_e, CDM):
+                # Calculates the maximum alpham_alphac value according to all bounds, given the input parameters.
+                max_CMB= 7.4 * pow(10 ,-19) * (m_I / 1e9) ** 2 * (m_C / 1e8) ** 2 * (1e9 / (m_C + m_I)) * (1 + self.cosmo.Omega_b / (f * self.cosmo.Omega_DM)) 
+                max_SI = np.sqrt(pow(10, -11) * (m_C / 1e9) ** 3)              
+                max_tight_coupling = (0.08 * np.sqrt(Q) * np.sqrt(m_C / 1e8) * (1e9 / m_I) ** 0.25) ** 4 * consts.alphaEM ** 2  
+                return np.min((max_SI*np.ones_like(max_CMB), max_CMB, max_tight_coupling))
+
+            if DM_params['alphaI_alphaC'] == 'max':
+                self.alphaI_alphaC = max_alphaI_alphac(self.mm, self.mC, self.f_m, self.sigma_e,self.CDM)
+            else:
+                self.alphaI_alphaC = alphaI_alphaC
 
     def EvolveIGM(self, z_min = 10, z_max = 1200, Nz = 250, ivp_kwargs = None):
         
@@ -67,7 +116,6 @@ class evolver():
         opts = {**defaults, **(ivp_kwargs or {})}
 
         # Solve evolution
-        #self.max_step = 0.001
         soln = solve_ivp(IGM.ODEs_SM, [log_a[0], log_a[-1]],init_cond_array, method='BDF',t_eval=log_a,
                          args=(self.cosmo, self.Jalphastar_interps, self.lya.Jalpha_X,self.SFRD_interp, self.Q_ion_interp, self.HeatRate_interp, self.ReionRate_interp, 
                                self.Lya_Heat, self.CMB_Heat), **opts)
@@ -79,6 +127,61 @@ class evolver():
         Delta_CMB_b_arr = soln_vec[:, 0]/consts.kB           # CMB-baryon temperature [K]
         self.Tbaryon = self.TCMB - Delta_CMB_b_arr         # baryon temperature [K] 
         self.xHII_IGM = soln_vec[:, 1]                     # xHI in the IGM (outside of ionized bubbles)
+        if self.Q_ion_interp == None:
+            self.FillingFact = np.ones_like(self.rs)*1e-10 # Volume filling fraction of fully ionized bubbles - set to 0 in this case
+        else:
+            self.FillingFact = self.Q_ion_interp(self.rs-1)    
+        self.xHII = self.FillingFact + (1-self.FillingFact) * self.xHII_IGM # Averaged xHII (outside + in ionized bubbles)
+        self.xHI = 1-self.xHII                                              # Averaged xHI
+        
+        #T21 evolution
+        self.Tspin, self.T21 = self.T21Evolution()
+
+        #CMB optical depth to reionization
+        self.tau_e()
+        return
+
+    def EvolveIGM_2cDM(self, z_min = 10, z_max = 1200, Nz = 250, ivp_kwargs = None):
+        
+        # Time array for ODE solver - we evolve in log(a), a is the scale factor.
+        if z_max < 1200:
+            raise ValueError("Evolution must start at z_max>=1200")
+
+        log_a = np.linspace(np.log(1/(1+z_max)),np.log(1/(z_min+1)),Nz) 
+
+        # Set initial conditions
+        init_TCMB = self.cosmo.TCMB(1+z_max)          # CMB temperature (eV)
+        init_Tb = 0.99999*init_TCMB                   # Baryons kinetic temperature (eV)
+        init_T_IDM = 0.99999*init_Tb                  # IDM temperature (eV)
+        init_T_CDM = 1e-6                             # CDM temperature (eV)
+        init_V_baryon_IDM = 1e-5 / consts.c           # baryon-IDM relative velocity in c
+        init_V_IDM_CDM = 29 * 1e5 / consts.c          # IDM-CDM relative velocity in c
+        init_xHII = 0.999                             #Ionized hydrogen fraction
+        init_cond_array = [init_TCMB-init_Tb, init_xHII, init_Tb - init_T_IDM, np.log(init_V_baryon_IDM), np.log(init_T_CDM), np.log(init_V_IDM_CDM)] 
+
+        # solve_ivp kwargs
+        defaults = {"rtol": 1e-4, "max_step": 0.01}
+        opts = {**defaults, **(ivp_kwargs or {})}
+
+        # Solve evolution
+        soln = solve_ivp(IGM_mDM.ODEs_2cDM, [log_a[0], log_a[-1]],init_cond_array, method='BDF',t_eval=log_a,
+                         args=(self.cosmo, self.Jalphastar_interps, self.lya.Jalpha_X, self.Q_ion_interp, self.HeatRate_interp, self.ReionRate_interp,
+                         self.Lya_Heat,self.CMB_Heat, self.f_m, self.mm, self.mC, self.sigma_e, self.alphaI_alphaC, self.m_phi, self.IDM, self.CDM), **opts)
+
+            
+        #Organize output
+        self.rs = self.cosmo.rs_from_log_a(soln['t'])            # Redshifts (1+z) for which we solved
+        self.TCMB = self.cosmo.TCMB(self.rs)/consts.kB           # CMB temperature [K]
+        soln_vec = np.transpose(soln['y'])
+        Delta_CMB_b_arr = soln_vec[:, 0]/consts.kB           # CMB-baryon temperature [K]
+        Delta_baryon_IDM = soln_vec[:, 2]/consts.kB          # Baryon-IDM temperature [K]
+        self.Tbaryon = self.TCMB - Delta_CMB_b_arr         # Baryon temperature [K] 
+        self.TIDM = self.Tbaryon - Delta_baryon_IDM        # IDM temperature [K]
+        self.TCDM = np.exp(soln_vec[:,4])/consts.kB          # CDM temperature [K]
+        self.xHII_IGM = soln_vec[:, 1]                     # xHI in the IGM (outside of ionized bubbles)
+        self.V_mb_arr=np.exp(soln_vec[:, 3])*consts.c/1e5  # V_mb [km/s]
+        self.V_mc_arr=np.exp(soln_vec[:, 5])*consts.c/1e5  # V_mc [km/s]
+
         if self.Q_ion_interp == None:
             self.FillingFact = np.ones_like(self.rs)*1e-10 # Volume filling fraction of fully ionized bubbles - set to 0 in this case
         else:

@@ -12,7 +12,7 @@ Reds = cm.get_cmap('Reds')
 Greys = cm.get_cmap('Greys')
 
 class GlobalWrapper(Eobj.evolver):
-    def __init__(self, star_formation_params, xray_params, reion_params, cosmo_params = None,
+    def __init__(self, star_formation_params, xray_params, reion_params, cosmo_params = None, DM_params = None,
                  photoheat = True, Lya_Heat = True, CMB_Heat = True):
         
         self.verify_cosmo_params(cosmo_params)
@@ -25,6 +25,7 @@ class GlobalWrapper(Eobj.evolver):
                          star_formation_params = star_formation_params,
                          xray_params = xray_params,
                          reion_params = reion_params,
+                         DM_params = DM_params,
                          photoheat = photoheat,
                          Lya_Heat = Lya_Heat,
                          CMB_Heat = CMB_Heat)
@@ -183,6 +184,12 @@ class GlobalWrapper(Eobj.evolver):
 
     def plot_Tbaryon(self, axis=None, **plot_kwargs):
         return self.plot_quantity(self.rs, self.Tbaryon, 'Redshift (1 + z)', 'Baryon Temperature [K]', axis, **plot_kwargs)
+    
+    def plot_TIDM(self, axis=None, **plot_kwargs):
+        return self.plot_quantity(self.rs, self.TIDM, 'Redshift (1 + z)', 'IDM Temperature [K]', axis, **plot_kwargs)
+        
+    def plot_TCDM(self, axis=None, **plot_kwargs):
+        return self.plot_quantity(self.rs, self.TCDM, 'Redshift (1 + z)', 'CDM Temperature [K]', axis, **plot_kwargs)
         
     def plot_Tspin(self, axis=None, **plot_kwargs):
         return self.plot_quantity(self.rs, self.Tspin, 'Redshift (1 + z)', 'Spin Temperature [K]', axis, **plot_kwargs)
@@ -221,7 +228,7 @@ class GlobalWrapper(Eobj.evolver):
             axis.plot(z_arr + 1, SFRDII+SFRDIII, linewidth = 3, linestyle = 'dashed', label = 'PopII+PopIII', color = Greys(0.7))
         return fig, axis
 
-    def plot_UVLF(self,z, MagArr = np.linspace(-20,-5, 50), sigma_MUV = 0.01, kUVII=1.15e-28, kUVIII=1.15e-28, axis = None, **plot_kwargs):
+    def plot_UVLF(self,z, Muv = np.linspace(-20,-5, 50), sigma_MUV = 0.01, kUVII=1.15e-28, kUVIII=1.15e-28, axis = None, **plot_kwargs):
         """ Calculates the UVLF [1/Mpc^3/Mag] at redshift z over magnitude array Mag_arr 
             axis, ***plot_kwargs like in plot_Tbaryon """
 
@@ -230,20 +237,20 @@ class GlobalWrapper(Eobj.evolver):
             fig, axis = self.default_figure(axis, 
                                             xlabel = 'Magnitude', 
                                             ylabel = r'$\Phi \left[{\rm Mag}^{-1}~{\rm Mpc}^{-3}\right]$',
-                                            xscale = 'linear', xlim = (MagArr[0],MagArr[-1]))
+                                            xscale = 'linear', xlim = (Muv[0],Muv[-1]))
         plot_kwargs = self.default_plot_kwargs(**plot_kwargs) # Set default plot style if not provided
 
         if self.Pop == 'PopII':
-            axis.plot(MagArr, self.UVLF(z, MagArr, sigma_MUV, kUVII=kUVII), **plot_kwargs)
+            axis.plot(Muv, self.UVLF(z, Muv, sigma_MUV, kUVII=kUVII), **plot_kwargs)
         elif self.Pop == 'PopIII':
-            axis.plot(MagArr, self.UVLF(z, MagArr, sigma_MUV, kUVIII=kUVIII), **plot_kwargs)
+            axis.plot(Muv, self.UVLF(z, Muv, sigma_MUV, kUVIII=kUVIII), **plot_kwargs)
         elif self.Pop == 'PopII+PopIII':
             if plot_kwargs:
                 print('Line styling is currently unavailable for two populations. Sorry for the inconvenience. \nIf needed it is possible to change styling directly in plot_SFRD.')
-            UVLFII,UVLFIII = self.UVLF(z, MagArr, sigma_MUV, kUVII=kUVII, kUVIII = kUVIII)
-            axis.plot(MagArr, UVLFII, linewidth = 3, label = 'PopII', color = Blues(0.8))
-            axis.plot(MagArr, UVLFIII, linewidth = 3, label = 'PopIII', color = Reds(0.7))
-            axis.plot(MagArr, UVLFII+UVLFIII, linewidth = 3, linestyle = 'dashed', label = 'PopII+PopIII', color = Greys(0.7))
+            UVLFII,UVLFIII = self.UVLF(z, Muv, sigma_MUV, kUVII=kUVII, kUVIII = kUVIII)
+            axis.plot(Muv, UVLFII, linewidth = 3, label = 'PopII', color = Blues(0.8))
+            axis.plot(Muv, UVLFIII, linewidth = 3, label = 'PopIII', color = Reds(0.7))
+            axis.plot(Muv, UVLFII+UVLFIII, linewidth = 3, linestyle = 'dashed', label = 'PopII+PopIII', color = Greys(0.7))
         return fig, axis
 
     def plot_JLW(self, z_arr = np.linspace(6,30,150), axis = None, **plot_kwargs):

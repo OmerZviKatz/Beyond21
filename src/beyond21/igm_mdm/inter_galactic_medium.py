@@ -6,7 +6,6 @@ import beyond21.interpolations as pre
 global Ts_prev
 Ts_prev = [0]
 
-
 ##############################
 # Spin and 21-cm Temperatues #
 ##############################

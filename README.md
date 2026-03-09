@@ -1,21 +1,6 @@
-# Beyond21
+# Beyond21 - 2cDM branch
 
-**Beyond21** is an open-source Python framework for global modeling of the
-**Cosmic Dawn (CD)** and **Epoch of Reionization (EoR)**.
-
-It provides a flexible and modular pipeline to compute the coupled
-evolution of early stellar populations, radiation backgrounds, and the
-intergalactic medium, enabling predictions for multiple observables
-within a single framework. A full run takes ~0.1 s using a single CPU
-core on a laptop, enabling broad, high resolution, parameter exploration.
-
-Key outputs include:
--   Global 21-cm signal
--   UV luminosity functions (UVLFs)
--   Ionization history
--   Contributions to the cosmic X-ray background (CXB)
-
-We encourage users to take advantage of the modular structure and short running time of Beyond21 to test new astrophysical models and explore physics within and beyond the Standard Model.
+This branch implements the **2cDM** model of [Liu et al. (2019)](https://arxiv.org/abs/1908.06986), providing an example of a beyond-Standard-Model extension within Beyond21.
 
 
 ------------------------------------------------------------------------
@@ -31,7 +16,7 @@ Beyond21 requires **Python ≥ 3.9**.
 ### Quick install
 
 ``` bash
-git clone git@github.com:OmerZviKatz/Beyond21.git
+git clone git@github.com:OmerZviKatz/Beyond21.git -b 2cDM
 cd Beyond21
 pip install ".[all]"
 ```
@@ -77,5 +62,4 @@ To get started with Beyond21, we recommend exploring the notebooks in the
 
 # Citation
 
-If you use **Beyond21** in your research, please cite the corresponding
-paper (to appear).
+If you use **Beyond21** in your research, please cite [Katz (2026)](https://arxiv.org/pdf/2603.04542).
