@@ -317,7 +317,7 @@ class XrayHeatingReion:
         
         # Create array for all redshifts that contribute to unresolved X-rays
         zlen = max(2, int((self.zstar-zX)*10)) # resolution of 0.1 in z
-        z_arr = np.linspace(zX, self.zstar, zlen)  # Linear spacing in z for better resolution at low z where attenuation is stronger
+        z_arr = np.linspace(zX, self.zstar, zlen)  
         # Compute emissivity for each (E, z) pair
         integrand = np.zeros((len(E_arr), len(z_arr))) 
         if attenuate:
@@ -341,7 +341,7 @@ class XrayHeatingReion:
         # Integrate over E
         final_integral = np.trapz(E_arr * integral_over_z, E_arr) / (4 * np.pi) # [eV/cm^3/sr]
 
-        return consts.c*final_integral/1000 # [keV/cm^2/s/sr]
+        return consts.c*final_integral # [eV/cm^2/s/sr]
 
 
 
