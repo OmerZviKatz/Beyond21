@@ -341,7 +341,7 @@ class XrayHeatingReion:
         # Integrate over E
         final_integral = np.trapz(E_arr * integral_over_z, E_arr) / (4 * np.pi) # [eV/cm^3/sr]
 
-        return consts.c*final_integral/1000 # [keV/cm^2/s/sr]
+        return consts.c*final_integral # [eV/cm^2/s/sr]
 
 
 
